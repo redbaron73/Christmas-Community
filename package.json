@@ -1,7 +1,7 @@
 {
-  "name": "christmas-community",
-  "version": "1.36.0",
-  "description": "Christmas lists for communities",
+  "name": "gift-registry",
+  "version": "1.36.2024",
+  "description": "Gift Registry for communities",
   "type": "module",
   "main": "built/index.js",
   "scripts": {
@@ -10,13 +10,13 @@
     "dev": "nodemon --watch src -e ts,js --exec 'npm run build && node built/index.js'",
     "postinstall": "node postinstall.cjs",
     "build": "tsc",
-    "release": "docker buildx build . --platform linux/amd64,linux/arm64 -t wingysam/christmas-community -t wingysam/christmas-community:$(./node_modules/node-jq/bin/jq -r .version < package.json) --push"
+    "release": "docker buildx build . --platform linux/amd64,linux/arm64 -t redbaron73/gift-registry -t redbaron73/gift-registry:$(./node_modules/node-jq/bin/jq -r .version < package.json) --push"
   },
   "author": "Wingysam <wingysam+git@gmail.com>",
   "license": "AGPL-3.0",
   "repository": {
     "type": "git",
-    "url": "https://github.com/wingysam/Christmas-Community"
+    "url": "https://github.com/redbaron73/gift-registry"
   },
   "dependencies": {
     "bcrypt-nodejs": "^0.0.3",
