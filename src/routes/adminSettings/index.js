@@ -264,18 +264,22 @@ export default function ({ db, ensurePfp }) {
   router.post('/groups/add', verifyAuth(), async (req, res) => {
     if (!req.user.admin) return res.redirect('/')
 
-    const groupId = req.body.groupId.trim()
-    if (!groupId) {
+    const groupName = req.body.groupName?.trim()
+    if (!groupName) {
       req.flash('error', _CC.lang('ADMIN_GROUPS_ADD_ERROR_NAME_EMPTY'))
       return res.redirect('/admin-settings/groups')
     }
 
     try {
+      const groupId = `group-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+
       await _CC.groupsDb.put({
         _id: groupId,
-        name: req.body.groupName.trim() || groupId,
-        members: []
+        name: groupName,
+        members: [],
+        created: new Date().toISOString()
       })
+
       req.flash('success', _CC.lang('ADMIN_GROUPS_ADD_SUCCESS'))
     } catch (error) {
       req.flash('error', error.message)

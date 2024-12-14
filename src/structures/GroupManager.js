@@ -3,6 +3,12 @@ export class GroupManager {
         this.groupsCache = new Map()
     }
 
+    async createGroup(groupName) {
+        const group = await Group.new(groupName)
+        this.groupsCache.set(group.groupId, group)
+        return group
+    }
+
     async get(groupId) {
         const cached = this.groupsCache.get(groupId)
         if (cached) return cached

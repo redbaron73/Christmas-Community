@@ -1,7 +1,14 @@
 export class Group {
-    static async new(groupId) {
+    static async new(groupName) {
+        const groupId = `group-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
         const instance = new this({ groupId })
-        await instance.fetch()
+        instance.doc = {
+            _id: groupId,
+            name: groupName,
+            members: [],
+            created: new Date().toISOString()
+        }
+        await instance.save()
         return instance
     }
 
