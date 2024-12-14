@@ -248,5 +248,154 @@ export default function ({ db, ensurePfp }) {
     res.redirect('/admin-settings')
   })
 
+  router.get('/groups', verifyAuth(), async (req, res) => {
+    if (!req.user.admin) return res.redirect('/')
+
+    const { rows } = await _CC.groupsDb.allDocs({ include_docs: true })
+    const users = await _CC.usersDb.allDocs({ include_docs: true })
+
+    res.render('admin-groups', {
+      groups: rows.map(row => row.doc),
+      users: users.rows.map(row => row.doc),
+      title: _CC.lang('ADMIN_GROUPS_HEADER')
+    })
+  })
+
+  router.post('/groups/add', verifyAuth(), async (req, res) => {
+    if (!req.user.admin) return res.redirect('/')
+
+    const groupId = req.body.groupId.trim()
+    if (!groupId) {
+      req.flash('error', _CC.lang('ADMIN_GROUPS_ADD_ERROR_NAME_EMPTY'))
+      return res.redirect('/admin-settings/groups')
+    }
+
+    try {
+      await _CC.groupsDb.put({
+        _id: groupId,
+        name: req.body.groupName.trim() || groupId,
+        members: []
+      })
+      req.flash('success', _CC.lang('ADMIN_GROUPS_ADD_SUCCESS'))
+    } catch (error) {
+      req.flash('error', error.message)
+    }
+
+    res.redirect('/admin-settings/groups')
+  })
+
+  router.get('/groups/edit/:groupId', verifyAuth(), async (req, res) => {
+    if (!req.user.admin) return res.redirect('/')
+
+    try {
+      const group = await _CC.groupsDb.get(req.params.groupId)
+      const users = await _CC.usersDb.allDocs({ include_docs: true })
+
+      res.render('admin-group-edit', {
+        group,
+        users: users.rows.map(row => row.doc),
+        title: _CC.lang('ADMIN_GROUPS_EDIT_HEADER', group.name)
+      })
+    } catch (error) {
+      req.flash('error', error.message)
+      res.redirect('/admin-settings/groups')
+    }
+  })
+
+  router.post('/groups/edit/:groupId/members', verifyAuth(), async (req, res) => {
+    if (!req.user.admin) return res.redirect('/')
+
+    try {
+      const group = await _CC.groupsDb.get(req.params.groupId)
+      const userToAdd = req.body.userId
+
+      if (!group.members.includes(userToAdd)) {
+        group.members.push(userToAdd)
+        await _CC.groupsDb.put(group)
+        req.flash('success', _CC.lang('ADMIN_GROUPS_MEMBER_ADD_SUCCESS'))
+      }
+    } catch (error) {
+      req.flash('error', error.message)
+    }
+
+    res.redirect(`/admin-settings/groups/edit/${req.params.groupId}`)
+  })
+
+  router.post('/groups/edit/:groupId/members/remove', verifyAuth(), async (req, res) => {
+    if (!req.user.admin) return res.redirect('/')
+
+    try {
+      const group = await _CC.groupsDb.get(req.params.groupId)
+      const userToRemove = req.body.userId
+
+      group.members = group.members.filter(id => id !== userToRemove)
+      await _CC.groupsDb.put(group)
+      req.flash('success', _CC.lang('ADMIN_GROUPS_MEMBER_REMOVE_SUCCESS'))
+    } catch (error) {
+      req.flash('error', error.message)
+    }
+
+    res.redirect(`/admin-settings/groups/edit/${req.params.groupId}`)
+  })
+
+  router.post('/groups/delete/:groupId', verifyAuth(), async (req, res) => {
+    if (!req.user.admin) return res.redirect('/')
+
+    try {
+      const group = await _CC.groupsDb.get(req.params.groupId)
+      await _CC.groupsDb.remove(group)
+      req.flash('success', _CC.lang('ADMIN_GROUPS_DELETE_SUCCESS'))
+    } catch (error) {
+      req.flash('error', error.message)
+    }
+
+    res.redirect('/admin-settings/groups')
+  })
+
+  router.get('/couples', verifyAuth(), async (req, res) => {
+    if (!req.user.admin) return res.redirect('/')
+
+    const { rows } = await _CC.couplesDb.allDocs({ include_docs: true })
+    const users = await _CC.usersDb.allDocs({ include_docs: true })
+
+    res.render('admin-couples', {
+      couples: rows.map(row => row.doc),
+      users: users.rows.map(row => row.doc),
+      title: _CC.lang('ADMIN_COUPLES_HEADER')
+    })
+  })
+
+  router.post('/couples/add', verifyAuth(), async (req, res) => {
+    if (!req.user.admin) return res.redirect('/')
+
+    try {
+      const coupleId = nanoid()
+      await _CC.couplesDb.put({
+        _id: coupleId,
+        name: req.body.coupleName.trim(),
+        members: [req.body.member1, req.body.member2]
+      })
+      req.flash('success', _CC.lang('ADMIN_COUPLES_ADD_SUCCESS'))
+    } catch (error) {
+      req.flash('error', error.message)
+    }
+
+    res.redirect('/admin-settings/couples')
+  })
+
+  router.post('/couples/delete/:coupleId', verifyAuth(), async (req, res) => {
+    if (!req.user.admin) return res.redirect('/')
+
+    try {
+      const couple = await _CC.couplesDb.get(req.params.coupleId)
+      await _CC.couplesDb.remove(couple)
+      req.flash('success', _CC.lang('ADMIN_COUPLES_DELETE_SUCCESS'))
+    } catch (error) {
+      req.flash('error', error.message)
+    }
+
+    res.redirect('/admin-settings/couples')
+  })
+
   return router
 }

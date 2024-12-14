@@ -1,0 +1,53 @@
+extends layout.pug
+
+block content
+  h2= lang('ADMIN_COUPLES_LIST_HEADER')
+  
+  if couples.length > 0
+    .box
+      table.table.has-mobile-cards
+        thead
+          tr
+            th= lang('ADMIN_COUPLES_NAME')
+            th= lang('ADMIN_COUPLES_MEMBERS')
+            th= lang('ADMIN_COUPLES_ACTIONS')
+        tbody
+          each couple in couples
+            tr
+              td= couple.name
+              td= couple.members.join(' & ')
+              td
+                form.inline(method='POST', action=`${_CC.config.base}admin-settings/couples/delete/${couple._id}`)
+                  button.button.is-danger(type='submit')
+                    span.icon
+                      i.fas.fa-trash
+                    span= lang('ADMIN_COUPLES_DELETE')
+  else
+    p= lang('ADMIN_COUPLES_NO_COUPLES')
+
+  .box
+    h3= lang('ADMIN_COUPLES_CREATE_HEADER')
+    form(method='POST', action=`${_CC.config.base}admin-settings/couples/add`)
+      .field
+        label.label= lang('ADMIN_COUPLES_NAME')
+        .control
+          input.input(type='text', name='coupleName', required)
+      .field
+        label.label= lang('ADMIN_COUPLES_MEMBER_1')
+        .control
+          .select
+            select(name='member1', required)
+              option(value='')= lang('ADMIN_COUPLES_SELECT_USER')
+              each user in users
+                option(value=user._id)= user._id
+      .field
+        label.label= lang('ADMIN_COUPLES_MEMBER_2')
+        .control
+          .select
+            select(name='member2', required)
+              option(value='')= lang('ADMIN_COUPLES_SELECT_USER')
+              each user in users
+                option(value=user._id)= user._id
+      .field
+        .control
+          button.button.is-primary(type='submit')= lang('ADMIN_COUPLES_CREATE')

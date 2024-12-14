@@ -1,5 +1,16 @@
 extends layout.pug
 
+mixin pledgeButtons(item)
+  .field.is-grouped
+    .control
+      form.inline(method='POST', action=`${_CC.config.base}wishlist/${req.params.user}/pledge/${item.id}`)
+        input(type='hidden', name='anonymous', value='false')
+        input.inline.button.is-primary(type='submit' value=lang('WISHLIST_PLEDGE_ITEM'))
+    .control
+      form.inline(method='POST', action=`${_CC.config.base}wishlist/${req.params.user}/pledge/${item.id}`)
+        input(type='hidden', name='anonymous', value='true')
+        input.inline.button.is-info(type='submit' value=lang('WISHLIST_PLEDGE_ANONYMOUS_BUTTON'))
+
 mixin sharedInfoProp(key, label)
   if sharedInfo[key] && sharedInfo[key].length > 0
     tr
@@ -18,6 +29,10 @@ block title
           span= lang('WISHLIST_TITLE', name)
 
 block content
+  if ownerCouple
+    .box.has-background-info-light
+      h3.has-text-info= lang('WISHLIST_COUPLE_HEADER')
+      p= lang('WISHLIST_COUPLE_MEMBERS', ownerCouple.members.join(' & '))
   script(type='data/user_id')= req.user._id
   table.table(style='width: fit-content;')
     tbody
@@ -144,10 +159,7 @@ block content
               else
                 td(data-label=lang('WISHLIST_PLEDGE'))
                   if req.params.user !== req.user._id && !item.pledgedBy
-                    form.inline(method='POST', action=`${_CC.config.base}wishlist/${req.params.user}/pledge/${item.id}`)
-                      .field.inline
-                        .control.inline
-                          input.inline.button.is-primary(type='submit' value=lang('WISHLIST_PLEDGE_ITEM'))
+                    +pledgeButtons(item)
                   if item.pledgedBy === req.user._id
                     form.inline(method='POST', action=`${_CC.config.base}wishlist/${req.params.user}/unpledge/${item.id}`)
                       .field.inline
@@ -156,6 +168,10 @@ block content
                   if item.pledgedBy && item.pledgedBy !== req.user._id
                     if item.pledgedBy === '_CCUNKNOWN'
                       span.ugc=lang('WISHLIST_PLEDGED_GUEST')
+                    else if item.pledgedBy === 'anonymous'
+                      span.ugc=lang('WISHLIST_PLEDGED_ANONYMOUS')
+                    else if item.pledgerDisplayName
+                      span.ugc=item.pledgerDisplayName
                     else
                       span.ugc=lang('WISHLIST_PLEDGED', item.pledgedBy)
               td(data-label='Delete Item')
@@ -221,10 +237,7 @@ block content
           hr
           div
             if req.params.user !== req.user._id && !item.pledgedBy
-              form.inline(method='POST', action=`${_CC.config.base}wishlist/${req.params.user}/pledge/${item.id}`)
-                .field.inline
-                  .control.inline
-                    input.inline.button.is-primary(type='submit' value=lang('WISHLIST_PLEDGE'))
+              +pledgeButtons(item)
             if item.pledgedBy === req.user._id
               form.inline(method='POST', action=`${_CC.config.base}wishlist/${req.params.user}/unpledge/${item.id}`)
                 .field.inline
@@ -273,6 +286,12 @@ block content
           name='note',
           placeholder=lang('WISHLIST_OPTIONAL')
         )
+    if req.user._id !== req.params.user && ownerCouple && (!viewerCouple || ownerCouple._id !== viewerCouple._id)
+      .field
+        .control
+          label.checkbox
+            input(type='checkbox', name='forCouple')
+            span &nbsp;#{lang('WISHLIST_FOR_COUPLE', ownerCouple.name || ownerCouple.members.join(' & '))}
     .field.is-grouped
       .control
         input.button(type='submit' value=(req.user._id === req.params.user ? lang('WISHLIST_ADD') : lang('WISHLIST_PLEDGE_ITEM')))

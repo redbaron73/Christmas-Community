@@ -1,0 +1,44 @@
+extends layout.pug
+
+block content
+  h2= lang('ADMIN_GROUPS_EDIT_HEADER', group.name)
+  
+  .box
+    h3= lang('ADMIN_GROUPS_MEMBERS_HEADER')
+    
+    if group.members.length > 0
+      table.table
+        thead
+          tr
+            th= lang('ADMIN_GROUPS_MEMBER_NAME')
+            th= lang('ADMIN_GROUPS_ACTIONS')
+        tbody
+          each memberId in group.members
+            - const member = users.find(u => u._id === memberId)
+            if member
+              tr
+                td= member._id
+                td
+                  form.inline(method='POST', action=`${_CC.config.base}admin-settings/groups/edit/${group._id}/members/remove`)
+                    input(type='hidden', name='userId', value=member._id)
+                    button.button.is-danger.is-small(type='submit')
+                      span.icon
+                        i.fas.fa-user-minus
+                      span= lang('ADMIN_GROUPS_REMOVE_MEMBER')
+    else
+      p= lang('ADMIN_GROUPS_NO_MEMBERS')
+    
+    form(method='POST', action=`${_CC.config.base}admin-settings/groups/edit/${group._id}/members`)
+      .field.has-addons
+        .control
+          .select
+            select(name='userId', required)
+              option(value='')= lang('ADMIN_GROUPS_SELECT_USER')
+              each user in users
+                if !group.members.includes(user._id)
+                  option(value=user._id)= user._id
+        .control
+          button.button.is-primary(type='submit')
+            span.icon
+              i.fas.fa-user-plus
+            span= lang('ADMIN_GROUPS_ADD_MEMBER')

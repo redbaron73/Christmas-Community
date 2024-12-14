@@ -22,9 +22,25 @@ block content
     .field
       .control
         input.button.is-primary(type='submit' value=lang('ADMIN_SETTINGS_USERS_ADD_BUTTON'))
+  
+  h3= lang('ADMIN_GROUPS_SECTION_HEADER')
+  p!= lang('ADMIN_GROUPS_SECTION_DESCRIPTION')
+  a.button.is-primary(href=`${_CC.config.base}admin-settings/groups`)
+    span.icon
+      i.fas.fa-users
+    span= lang('ADMIN_GROUPS_MANAGE')
+
+  h3= lang('ADMIN_COUPLES_SECTION_HEADER') 
+  p!= lang('ADMIN_COUPLES_SECTION_DESCRIPTION')
+  a.button.is-primary(href=`${_CC.config.base}admin-settings/couples`)
+    span.icon
+      i.fas.fa-heart
+    span= lang('ADMIN_COUPLES_MANAGE')
+
   h3= lang('ADMIN_SETTINGS_CLEARDB_HEADER')
   p!= lang('ADMIN_SETTINGS_CLEARDB_DESCRIPTION')
   a.button.is-danger(href=`${_CC.config.base}admin-settings/clear-wishlists`)= lang('ADMIN_SETTINGS_CLEARDB_BUTTON')
+  
   h3= lang('ADMIN_SETTINGS_VERSION_INFO')
   p Christmas Community: v#{_CC.packageJson.version}
   p Get Product Data: v#{_CC.GetProductData.version}

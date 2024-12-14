@@ -1,0 +1,48 @@
+extends layout.pug
+
+block content
+  h2= lang('ADMIN_GROUPS_LIST_HEADER')
+  
+  if groups.length > 0
+    .box
+      table.table.has-mobile-cards
+        thead
+          tr
+            th= lang('ADMIN_GROUPS_NAME')
+            th= lang('ADMIN_GROUPS_MEMBER_COUNT')
+            th= lang('ADMIN_GROUPS_ACTIONS')
+        tbody
+          each group in groups
+            tr
+              td= group.name
+              td= group.members.length
+              td
+                .field.is-grouped
+                  .control
+                    a.button.is-info(href=`${_CC.config.base}admin-settings/groups/edit/${group._id}`)
+                      span.icon
+                        i.fas.fa-edit
+                      span= lang('ADMIN_GROUPS_EDIT')
+                  .control
+                    form.inline(method='POST', action=`${_CC.config.base}admin-settings/groups/delete/${group._id}`)
+                      button.button.is-danger(type='submit')
+                        span.icon
+                          i.fas.fa-trash
+                        span= lang('ADMIN_GROUPS_DELETE')
+  else
+    p= lang('ADMIN_GROUPS_NO_GROUPS')
+
+  .box
+    h3= lang('ADMIN_GROUPS_CREATE_HEADER')
+    form(method='POST', action=`${_CC.config.base}admin-settings/groups/add`)
+      .field
+        label.label= lang('ADMIN_GROUPS_ID')
+        .control
+          input.input(type='text', name='groupId', required)
+      .field
+        label.label= lang('ADMIN_GROUPS_NAME')
+        .control
+          input.input(type='text', name='groupName')
+      .field
+        .control
+          button.button.is-primary(type='submit')= lang('ADMIN_GROUPS_CREATE')

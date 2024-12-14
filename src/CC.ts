@@ -18,9 +18,16 @@ CC.lang = (await import ('./Language.js')).default
 
 const PouchDB = (await import('./PouchDB.js')).default
 CC.usersDb = new PouchDB('users')
+CC.groupsDb = new PouchDB('groups')
+CC.couplesDb = new PouchDB('couples')
 
 const { WishlistManager } = await import('./structures/WishlistManager.js')
+const { GroupManager } = await import('./structures/GroupManager.js')
+const { CoupleManager } = await import('./structures/CoupleManager.js')
+
 CC.wishlistManager = new WishlistManager()
+CC.groupManager = new GroupManager()
+CC.coupleManager = new CoupleManager()
 
 CC.updateNotice = (await import('./UpdateNotice.js')).default
 

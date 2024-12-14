@@ -26,15 +26,33 @@ export default function (db) {
 
   router.get('/', publicRoute(), async (req, res) => {
     const docs = await db.allDocs({ include_docs: true })
+    let visibleUsers = docs.rows;
+
+    if (req.user._id !== '_CCUNKNOWN') {
+      const userGroups = await _CC.groupManager.getUserGroups(req.user._id)
+
+      visibleUsers = await Promise.all(docs.rows.map(async (row) => {
+        if (row.id === req.user._id) return row;
+        const ownerGroups = await _CC.groupManager.getUserGroups(row.id)
+        return ownerGroups.some(g => userGroups.includes(g)) ? row : null;
+      }));
+      visibleUsers = visibleUsers.filter(Boolean);
+    }
+
     if (global._CC.config.wishlist.singleList) {
-      for (const row of docs.rows) {
+      for (const row of visibleUsers) {
         if (row.doc.admin) return res.redirect(`/wishlist/${row.doc._id}`)
       }
     }
-    res.render('wishlists', { title: _CC.lang('WISHLISTS_TITLE'), users: docs.rows, totals })
+
+    res.render('wishlists', {
+      title: _CC.lang('WISHLISTS_TITLE'),
+      users: visibleUsers,
+      totals
+    })
   })
 
-  async function redirectIfSingleUserMode (req, res, next) {
+  async function redirectIfSingleUserMode(req, res, next) {
     const dbUser = await db.get(req.params.user)
     if (_CC.config.wishlist.singleList) {
       if (!dbUser.admin) {
@@ -53,6 +71,10 @@ export default function (db) {
       await wishlist.fetch()
       const items = await wishlist.itemsVisibleToUser(req.user._id)
 
+      const ownerCouple = await _CC.coupleManager.getUserCouple(req.params.user)
+      const viewerCouple = req.user._id !== '_CCUNKNOWN' ?
+        await _CC.coupleManager.getUserCouple(req.user._id) : null
+
       const compiledNotes = {}
       if (_CC.config.wishlist.note.markdown) {
         for (const item of items) {
@@ -65,7 +87,9 @@ export default function (db) {
         name: wishlist.username,
         items,
         compiledNotes,
-        sharedInfo: wishlist.doc?.info ?? {}
+        sharedInfo: wishlist.doc?.info ?? {},
+        ownerCouple,
+        viewerCouple
       })
     } catch (error) {
       req.flash('error', error)
@@ -81,7 +105,8 @@ export default function (db) {
         itemUrlOrName: req.body.itemUrlOrName,
         suggest: req.body.suggest,
         note: req.body.note,
-        addedBy: req.user._id
+        addedBy: req.user._id,
+        forCouple: req.user._id === req.params.user ? false : (req.body.forCouple === 'on')
       })
 
       for (const error of nonFatalErrors) {
@@ -109,9 +134,13 @@ export default function (db) {
         throw new Error(_CC.lang('WISHLIST_PLEDGE_DUPLICATE'))
       }
 
-      await wishlist.pledge(item.id, req.user._id)
+      const isAnonymous = req.body.anonymous === 'on' ||
+        req.body.anonymous === 'true' ||
+        req.body.anonymous === true;
+
+      await wishlist.pledge(item.id, req.user._id, isAnonymous)
     } catch (error) {
-      req.flash('error', `${error}`)
+      req.flash('error', error.message)
     }
 
     res.redirect(`/wishlist/${req.params.user}`)
@@ -237,6 +266,24 @@ export default function (db) {
     }
 
     res.redirect(`/wishlist/${req.params.user}/note/${req.params.id}`)
+  })
+
+  router.post('/markPurchased/:user/:itemId', verifyAuth(), async (req, res) => {
+    try {
+      const wishlist = await _CC.wishlistManager.get(req.params.user)
+      const item = await wishlist.get(req.params.itemId)
+
+      if (item.pledgedBy !== req.user._id) {
+        throw new Error(_CC.lang('WISHLIST_PURCHASE_NOT_PLEDGED'))
+      }
+
+      await wishlist.markPurchased(req.params.itemId)
+      req.flash('success', _CC.lang('WISHLIST_MARKED_PURCHASED'))
+    } catch (error) {
+      req.flash('error', error.message)
+    }
+
+    res.redirect(`/pledged-items`)
   })
 
   return router

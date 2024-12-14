@@ -2,17 +2,17 @@ import getProductData from 'get-product-name'
 import u64 from 'u64'
 
 export class Wishlist {
-  static async new (username) {
+  static async new(username) {
     const instance = new this({ username })
     await instance.fetch()
     return instance
   }
 
-  constructor (opts) {
+  constructor(opts) {
     this.username = opts.username
   }
 
-  async fetch () {
+  async fetch() {
     try {
       this.doc = await _CC.usersDb.get(this.username)
     } catch {
@@ -21,7 +21,7 @@ export class Wishlist {
     this.items = this.doc.wishlist
   }
 
-  async save () {
+  async save() {
     try {
       const { rev } = await _CC.usersDb.put(this.doc)
       this.doc._rev = rev
@@ -31,29 +31,82 @@ export class Wishlist {
     }
   }
 
-  async get (id) {
+  async get(id) {
     const item = this.items.find(item => item.id === id)
     if (!item) throw new Error(_CC.lang('WISHLIST_ITEM_MISSING'))
     return item
   }
 
-  async itemsVisibleToUser (username) {
+  async itemsVisibleToUser(username) {
     const addedBySelfAtTop = async (items) => {
       return [
-        ...items.filter(item => item.addedBy === this.username),
-        ...items.filter(item => item.addedBy !== this.username)
+        ...items.filter(item => item.addedBy === username),
+        ...items.filter(item => item.addedBy !== username)
       ]
     }
 
     if (this.username === username) {
-      return this.items
-        .filter(item => item.addedBy === username)
+      const ownItems = this.items.filter(item => item.addedBy === username)
+
+      ownItems.forEach(item => {
+        item.pledgedBy = undefined
+        item.anonymousPledge = undefined
+        item.purchased = undefined
+      })
+
+      return ownItems
     }
 
-    return await addedBySelfAtTop(this.items)
+    const userGroups = await this.getUserGroups(username)
+    const ownerGroups = await this.getUserGroups(this.username)
+    const sharedGroup = userGroups.some(g => ownerGroups.includes(g))
+
+    if (!sharedGroup) {
+      return []
+    }
+
+    const ownerCouple = await _CC.coupleManager.getUserCouple(this.username)
+    const viewerCouple = await _CC.coupleManager.getUserCouple(username)
+
+    const visibleItems = [...this.items]
+
+    if (ownerCouple) {
+      visibleItems.forEach(item => {
+        if (item.forCouple && ownerCouple.members.includes(username)) {
+          item.hidden = true
+        }
+
+        if (item.forCouple && !ownerCouple.members.includes(username)) {
+          item.forCouple = true
+          item.coupleNames = ownerCouple.members.join(' & ')
+        }
+      })
+    }
+
+    visibleItems.forEach(item => {
+      if (item.anonymousPledge) {
+        if (item.originalPledger === username) {
+          item.pledgedBy = username
+        } else if (this.username === username || item.addedBy === username) {
+          item.pledgedBy = 'anonymous'
+        } else {
+          item.pledgedBy = 'anonymous'
+        }
+      }
+    })
+
+    const filteredItems = visibleItems.filter(item => !item.hidden)
+    return await addedBySelfAtTop(filteredItems)
   }
 
-  async add ({ itemUrlOrName, suggest, note, addedBy }) {
+  async getUserGroups(username) {
+    const { rows } = await _CC.groupsDb.allDocs({ include_docs: true })
+    return rows
+      .filter(row => row.doc.members.includes(username))
+      .map(row => row.doc._id)
+  }
+
+  async add({ itemUrlOrName, suggest, note, addedBy, forCouple = false }) {
     if (!itemUrlOrName) {
       throw new Error(_CC.lang('WISHLIST_URL_REQUIRED'))
     }
@@ -78,9 +131,14 @@ export class Wishlist {
     item.addedBy = addedBy
     item.pledgedBy = (addedBy === this.username || suggest ? undefined : addedBy)
     item.note = note
+    item.forCouple = forCouple
 
     if (url) item.url = url
     if (!url) item.name = itemUrlOrName
+
+    item.forCouple = forCouple
+    item.anonymousPledge = false
+    item.purchased = false
 
     this.items.push(item)
     await this.save()
@@ -88,26 +146,39 @@ export class Wishlist {
     return { nonFatalErrors }
   }
 
-  async remove (id) {
+  async remove(id) {
     const index = this.items.findIndex(item => item.id === id)
     if (index === -1) throw new Error(_CC.lang('WISHLIST_ITEM_MISSING'))
     this.items.splice(index, 1)
     await this.save()
   }
 
-  async pledge (id, user) {
+  async pledge(id, user, anonymous = false) {
     const item = await this.get(id)
     item.pledgedBy = user
+    item.anonymousPledge = anonymous
+    if (anonymous) {
+      item.originalPledger = user
+    }
+    item.purchased = false
     await this.save()
   }
 
-  async unpledge (id) {
+  async markPurchased(id) {
+    const item = await this.get(id)
+    item.purchased = true
+    await this.save()
+  }
+
+  async unpledge(id) {
     const item = await this.get(id)
     item.pledgedBy = undefined
+    item.anonymousPledge = false
+    item.originalPledger = undefined
     await this.save()
   }
 
-  async move (id, places) {
+  async move(id, places) {
     if (places === 0) throw new Error('places should never be 0')
 
     const index = this.items.findIndex(item => item.id === id)
@@ -129,7 +200,7 @@ export class Wishlist {
     await this.save()
   }
 
-  async moveTop (id) {
+  async moveTop(id) {
     const index = this.items.findIndex(item => item.id === id)
     if (index === -1) throw new Error(_CC.lang('WISHLIST_ITEM_MISSING'))
 
@@ -138,7 +209,7 @@ export class Wishlist {
     await this.save()
   }
 
-  async moveBottom (id) {
+  async moveBottom(id) {
     const index = this.items.findIndex(item => item.id === id)
     if (index === -1) throw new Error(_CC.lang('WISHLIST_ITEM_MISSING'))
 
@@ -147,7 +218,7 @@ export class Wishlist {
     await this.save()
   }
 
-  async setItemData (id, data) {
+  async setItemData(id, data) {
     const item = await this.get(id)
 
     for (const key of [
@@ -162,7 +233,7 @@ export class Wishlist {
     await this.save()
   }
 
-  async refreshItemData (id) {
+  async refreshItemData(id) {
     const item = await this.get(id)
 
     if (!item.url) {
@@ -180,12 +251,12 @@ export class Wishlist {
   }
 }
 
-function parseURL (string) {
+function parseURL(string) {
   try {
     const url = new URL(string)
     if (_CC.config.wishlist.smile) {
       if (url.hostname === 'www.amazon.com') url.hostname = 'smile.amazon.com'
     }
     if (url) return url
-  } catch {}
+  } catch { }
 }

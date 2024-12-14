@@ -1,0 +1,45 @@
+extends layout.pug
+
+block content
+  h2= lang('PLEDGED_ITEMS_HEADER')
+  
+  if items.length === 0
+    p= lang('PLEDGED_ITEMS_EMPTY')
+  else
+    .box
+      table.table.has-mobile-cards
+        thead
+          th= lang('PLEDGED_ITEMS_ITEM')
+          th= lang('PLEDGED_ITEMS_FOR')
+          th= lang('PLEDGED_ITEMS_PRICE')
+          th= lang('PLEDGED_ITEMS_STATUS')
+          th= lang('PLEDGED_ITEMS_ACTIONS')
+        tbody
+          each item in items
+            tr(class=item.purchased ? 'has-background-success-light' : '')
+              td.ugc(data-label=lang('PLEDGED_ITEMS_ITEM'))
+                if item.url
+                  a(href=item.url, target='_blank')= item.name
+                else
+                  span= item.name
+              td.ugc(data-label=lang('PLEDGED_ITEMS_FOR'))= item.wishlistOwner
+              td.ugc(data-label=lang('PLEDGED_ITEMS_PRICE'))= item.price
+              td(data-label=lang('PLEDGED_ITEMS_STATUS'))
+                if item.purchased
+                  span.tag.is-success= lang('PLEDGED_ITEMS_PURCHASED')
+                else
+                  span.tag.is-warning= lang('PLEDGED_ITEMS_NOT_PURCHASED')
+              td(data-label=lang('PLEDGED_ITEMS_ACTIONS'))
+                if !item.purchased
+                  form.inline(method='POST', action=`${_CC.config.base}wishlist/markPurchased/${item.wishlistOwner}/${item.id}`)
+                    .field.inline
+                      .control.inline
+                        button.button.is-success(type='submit')
+                          span.icon
+                            i.fas.fa-check
+                          span= lang('PLEDGED_ITEMS_MARK_PURCHASED')
+  
+  script.
+    document.querySelectorAll('.table').forEach(table => {
+      table.classList.add('is-striped', 'is-hoverable', 'is-fullwidth')
+    })

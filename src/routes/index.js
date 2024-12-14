@@ -15,6 +15,7 @@ import Profile from './profile/index.js'
 import AdminSettings from './adminSettings/index.js'
 import ManifestJson from './manifest.json/index.js'
 import Google from './google-auth/index.js'
+import PledgedItems from './pledged-items/index.js'
 
 export default ({ db, config }) => {
   async function ensurePfp (username) {
@@ -68,6 +69,7 @@ export default ({ db, config }) => {
   router.use('/confirm-account', ConfirmAccount(db))
 
   router.use('/wishlist', Wishlist(db))
+  router.use('/pledged-items', PledgedItems({ db }))
   router.use('/supported-sites', SupportedSites())
 
   router.use('/profile', Profile({ db, config, ensurePfp }))
