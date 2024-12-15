@@ -1,10 +1,26 @@
-# Christmas Community
-![Docker Pulls](https://img.shields.io/docker/pulls/wingysam/christmas-community?style=for-the-badge)
-![Version](https://img.shields.io/badge/dynamic/json?color=orange&label=Version&query=version&url=https%3A%2F%2Fraw.githubusercontent.com%2FWingysam%2FChristmas-Community%2Fmaster%2Fpackage.json&style=for-the-badge)
-![Language](https://img.shields.io/badge/Language-JavaScript-DDA000?style=for-the-badge)
-![Runtime](https://img.shields.io/badge/Runtime-Node.JS-68A063?style=for-the-badge)
+# Gift-Registry Fork changes
 
-Web app for your family's Christmas shopping
+This is a fork of the Christmas Community Project (https://github.com/Wingysam/Christmas-Community)
+
+The primary changes are:
+- Group feature
+- Couple feature
+- Items pledged list with ability to mark as purchased
+- Ability to pledge anonymously
+
+These features are managed by the admin user, under admin settings.
+
+### Group feature
+Users need to be a member of at least one group. The default install will not shared list viewing. Users can be a member of more than one group.
+
+### Couple feature
+Once couples are defined, gifts items can be added to one or the others list and marked as "for both members of the couple". This will prevent either person from seeing the item.
+
+### Items pledged list
+Under the user heading a new menu item has been added that shows a list of all items you have pledged. Once the item has been purchased, it can be marked as purchased.
+
+### Pledge Anonymously
+When pledging an item, a new button is available that will make the pledge anonymous. The item will shown as pledged, without showing the name of the person pledging it.
 
 ## Purpose
 To create a simple place for your entire family to use to find gifts that people want, and to avoid double-gifting.
